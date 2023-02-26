@@ -1,4 +1,4 @@
-obj-m = gpio.o
+obj-m = emul.o
 KVERSION = $(shell uname -r)
 all:
 	make -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
