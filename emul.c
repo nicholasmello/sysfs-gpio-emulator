@@ -41,7 +41,7 @@ static ssize_t value_show(struct kobject *kobj, struct kobj_attribute *attr, cha
 {
 	long pinnum = 0;
 	kstrtol(attr->attr.name, 10, &pinnum); // there will be an err because gpio0 has characters
-	pr_info("Reading from %ld", pinnum);
+	pr_info("GPIO_EMULATOR: Reading from %ld", pinnum);
 	return sprintf(buffer, "%d\n", gpio_state[pinnum].value);
 }
 
@@ -64,7 +64,7 @@ static ssize_t value_store(struct kobject *kobj, struct kobj_attribute *attr, co
 		return -EINVAL;
 	if (num != 0 && num != 1)
 		return -EINVAL;
-	pr_info("Setting %ld to %ld\n", pinnum, num);
+	pr_info("GPIO_EMULATOR: Setting %ld to %ld\n", pinnum, num);
 	gpio_state[pinnum].value = num;
 	return count;
 }
@@ -82,7 +82,7 @@ static ssize_t direction_show(struct kobject *kobj, struct kobj_attribute *attr,
 	long pinnum = 0;
 	char *dir = "out";
 	kstrtol(attr->attr.name, 10, &pinnum); // there will be an err because gpio0 has characters
-	pr_info("Reading from %ld", pinnum);
+	pr_info("GPIO_EMULATOR: Reading from %ld", pinnum);
 	if (!gpio_state[pinnum].direction) dir = "in";
 	return sprintf(buffer, "%s\n", dir);
 }
@@ -205,19 +205,25 @@ static ssize_t export_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 	return sprintf(buffer, "Export file not readable\n");
 }
 
-int create_gpio_obj(struct kobject *kobj, const char *kobj_txt, struct kobj_attribute *value)
+int create_gpio_obj(struct kobject **kobj, const char *kobj_txt, struct kobj_attribute *value, struct kobj_attribute *direction)
 {
-	kobj = kobject_create_and_add(kobj_txt, gpio_emul);
-	if (!kobj)
+	*kobj = kobject_create_and_add(kobj_txt, gpio_emul);
+	if (!*kobj)
 	{
-		pr_info("Error creating module");
+		pr_info("GPIO_EMULATOR: Error creating module");
 		return -ENOMEM;
 	}
 	// Create files
-	if (sysfs_create_file(kobj, &value->attr))
+	if (sysfs_create_file(*kobj, &value->attr))
 	{
-		pr_info("Error creating gpio value file");
-		kobject_put(kobj);
+		pr_info("GPIO_EMULATOR: Error creating gpio value file");
+		kobject_put(*kobj);
+		return -ENOMEM;
+	}
+	if (sysfs_create_file(*kobj, &direction->attr))
+	{
+		pr_info("GPIO_EMULATOR: Error creating gpio value file");
+		kobject_put(*kobj);
 		return -ENOMEM;
 	}
 	return 0;
@@ -234,597 +240,37 @@ static ssize_t export_store(struct kobject *kobj, struct kobj_attribute *attr, c
 		return -EINVAL;
 	if (pinnum >= MAX_GPIO_PORTS)
 		return -EINVAL;
-	pr_info("Export Number: %ld\n", pinnum);
+	pr_info("GPIO_EMULATOR: Export Number: %ld\n", pinnum);
 	if (!gpio_state[pinnum].active) {
 		gpio_state[pinnum].active = 1;
-		if (pinnum == 0) {
-			gpio0 = kobject_create_and_add("gpio0", gpio_emul);
-			if (!gpio0)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio0, &gpio0_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio0);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio0, &gpio0_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio0);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 1) {
-			gpio1 = kobject_create_and_add("gpio1", gpio_emul);
-			if (!gpio1)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio1, &gpio1_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio1);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio1, &gpio1_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio1);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 2) {
-			gpio2 = kobject_create_and_add("gpio2", gpio_emul);
-			if (!gpio2)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio2, &gpio2_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio2);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio2, &gpio2_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio2);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 3) {
-			gpio3 = kobject_create_and_add("gpio3", gpio_emul);
-			if (!gpio3)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio3, &gpio3_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio3);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio3, &gpio3_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio3);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 4) {
-			gpio4 = kobject_create_and_add("gpio4", gpio_emul);
-			if (!gpio4)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio4, &gpio4_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio4);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio4, &gpio4_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio4);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 5) {
-			gpio5 = kobject_create_and_add("gpio5", gpio_emul);
-			if (!gpio5)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio5, &gpio5_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio5);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio5, &gpio5_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio5);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 6) {
-			gpio6 = kobject_create_and_add("gpio6", gpio_emul);
-			if (!gpio6)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio6, &gpio6_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio6);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio6, &gpio6_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio6);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 7) {
-			gpio7 = kobject_create_and_add("gpio7", gpio_emul);
-			if (!gpio7)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio7, &gpio7_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio7);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio7, &gpio7_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio7);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 8) {
-			gpio8 = kobject_create_and_add("gpio8", gpio_emul);
-			if (!gpio8)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio8, &gpio8_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio8);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio8, &gpio8_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio8);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 9) {
-			gpio9 = kobject_create_and_add("gpio9", gpio_emul);
-			if (!gpio9)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio9, &gpio9_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio9);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio9, &gpio9_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio9);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 10) {
-			gpio10 = kobject_create_and_add("gpio10", gpio_emul);
-			if (!gpio10)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio10, &gpio10_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio10);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio10, &gpio10_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio10);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 11) {
-			gpio11 = kobject_create_and_add("gpio11", gpio_emul);
-			if (!gpio11)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio11, &gpio11_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio11);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio11, &gpio11_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio11);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 12) {
-			gpio12 = kobject_create_and_add("gpio12", gpio_emul);
-			if (!gpio12)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio12, &gpio12_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio12);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio12, &gpio12_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio12);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 13) {
-			gpio13 = kobject_create_and_add("gpio13", gpio_emul);
-			if (!gpio13)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio13, &gpio13_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio13);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio13, &gpio13_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio13);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 14) {
-			gpio14 = kobject_create_and_add("gpio14", gpio_emul);
-			if (!gpio14)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio14, &gpio14_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio14);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio14, &gpio14_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio14);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 15) {
-			gpio15 = kobject_create_and_add("gpio15", gpio_emul);
-			if (!gpio15)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio15, &gpio15_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio15);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio15, &gpio15_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio15);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 16) {
-			gpio16 = kobject_create_and_add("gpio16", gpio_emul);
-			if (!gpio16)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio16, &gpio16_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio16);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio16, &gpio16_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio16);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 17) {
-			gpio17 = kobject_create_and_add("gpio17", gpio_emul);
-			if (!gpio17)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio17, &gpio17_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio17);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio17, &gpio17_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio17);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 18) {
-			gpio18 = kobject_create_and_add("gpio18", gpio_emul);
-			if (!gpio18)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio18, &gpio18_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio18);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio18, &gpio18_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio18);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 19) {
-			gpio19 = kobject_create_and_add("gpio19", gpio_emul);
-			if (!gpio19)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio19, &gpio19_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio19);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio19, &gpio19_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio19);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 20) {
-			gpio20 = kobject_create_and_add("gpio20", gpio_emul);
-			if (!gpio20)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio20, &gpio20_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio20);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio20, &gpio20_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio20);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 21) {
-			gpio21 = kobject_create_and_add("gpio21", gpio_emul);
-			if (!gpio21)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio21, &gpio21_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio21);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio21, &gpio21_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio21);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 22) {
-			gpio22 = kobject_create_and_add("gpio22", gpio_emul);
-			if (!gpio22)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio22, &gpio22_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio22);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio22, &gpio22_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio22);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 23) {
-			gpio23 = kobject_create_and_add("gpio23", gpio_emul);
-			if (!gpio23)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio23, &gpio23_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio23);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio23, &gpio23_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio23);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 24) {
-			gpio24 = kobject_create_and_add("gpio24", gpio_emul);
-			if (!gpio24)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio24, &gpio24_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio24);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio24, &gpio24_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio24);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 25) {
-			gpio25 = kobject_create_and_add("gpio25", gpio_emul);
-			if (!gpio25)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio25, &gpio26_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio25);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio25, &gpio25_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio25);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 26) {
-			gpio26 = kobject_create_and_add("gpio26", gpio_emul);
-			if (!gpio26)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio26, &gpio26_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio26);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio26, &gpio26_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio26);
-				return -ENOMEM;
-			}
-		}
-		else if (pinnum == 27) {
-			gpio27 = kobject_create_and_add("gpio27", gpio_emul);
-			if (!gpio27)
-			{
-				pr_info("Error creating module");
-				return -ENOMEM;
-			}
-			// Create files
-			if (sysfs_create_file(gpio27, &gpio27_value.attr))
-			{
-				pr_info("Error creating gpio value file");
-				kobject_put(gpio27);
-				return -ENOMEM;
-			}
-			if (sysfs_create_file(gpio27, &gpio27_direction.attr))
-			{
-				pr_info("Error creating gpio direction file");
-				kobject_put(gpio27);
-				return -ENOMEM;
-			}
-		}
+		if (pinnum == 0) create_gpio_obj(&gpio0, "gpio0", &gpio0_value, &gpio0_direction);
+		else if (pinnum == 1) create_gpio_obj(&gpio1, "gpio1", &gpio1_value, &gpio1_direction);
+		else if (pinnum == 2) create_gpio_obj(&gpio2, "gpio2", &gpio2_value, &gpio2_direction);
+		else if (pinnum == 3) create_gpio_obj(&gpio3, "gpio3", &gpio3_value, &gpio3_direction);
+		else if (pinnum == 4) create_gpio_obj(&gpio4, "gpio4", &gpio4_value, &gpio4_direction);
+		else if (pinnum == 5) create_gpio_obj(&gpio5, "gpio5", &gpio5_value, &gpio5_direction);
+		else if (pinnum == 6) create_gpio_obj(&gpio6, "gpio6", &gpio6_value, &gpio6_direction);
+		else if (pinnum == 7) create_gpio_obj(&gpio7, "gpio7", &gpio7_value, &gpio7_direction);
+		else if (pinnum == 8) create_gpio_obj(&gpio8, "gpio8", &gpio8_value, &gpio8_direction);
+		else if (pinnum == 9) create_gpio_obj(&gpio9, "gpio9", &gpio9_value, &gpio9_direction);
+		else if (pinnum == 10) create_gpio_obj(&gpio10, "gpio10", &gpio10_value, &gpio10_direction);
+		else if (pinnum == 11) create_gpio_obj(&gpio11, "gpio11", &gpio11_value, &gpio11_direction);
+		else if (pinnum == 12) create_gpio_obj(&gpio12, "gpio12", &gpio12_value, &gpio12_direction);
+		else if (pinnum == 13) create_gpio_obj(&gpio13, "gpio13", &gpio13_value, &gpio13_direction);
+		else if (pinnum == 14) create_gpio_obj(&gpio14, "gpio14", &gpio14_value, &gpio14_direction);
+		else if (pinnum == 15) create_gpio_obj(&gpio15, "gpio15", &gpio15_value, &gpio15_direction);
+		else if (pinnum == 16) create_gpio_obj(&gpio16, "gpio16", &gpio16_value, &gpio16_direction);
+		else if (pinnum == 17) create_gpio_obj(&gpio17, "gpio17", &gpio17_value, &gpio17_direction);
+		else if (pinnum == 18) create_gpio_obj(&gpio18, "gpio18", &gpio18_value, &gpio18_direction);
+		else if (pinnum == 19) create_gpio_obj(&gpio19, "gpio19", &gpio19_value, &gpio19_direction);
+		else if (pinnum == 20) create_gpio_obj(&gpio20, "gpio20", &gpio20_value, &gpio20_direction);
+		else if (pinnum == 21) create_gpio_obj(&gpio21, "gpio21", &gpio21_value, &gpio21_direction);
+		else if (pinnum == 22) create_gpio_obj(&gpio22, "gpio22", &gpio22_value, &gpio22_direction);
+		else if (pinnum == 23) create_gpio_obj(&gpio23, "gpio23", &gpio23_value, &gpio23_direction);
+		else if (pinnum == 24) create_gpio_obj(&gpio24, "gpio24", &gpio24_value, &gpio24_direction);
+		else if (pinnum == 25) create_gpio_obj(&gpio25, "gpio25", &gpio25_value, &gpio25_direction);
+		else if (pinnum == 26) create_gpio_obj(&gpio26, "gpio26", &gpio26_value, &gpio26_direction);
+		else if (pinnum == 27) create_gpio_obj(&gpio27, "gpio27", &gpio27_value, &gpio27_direction);
 	}
 	return count;
 }
@@ -840,12 +286,13 @@ static ssize_t unexport_show(struct kobject *kobj, struct kobj_attribute *attr, 
 	return sprintf(buffer, "UnExport file not readable\n");
 }
 
-void delete_object(struct kobject *kobj, struct kobj_attribute *value) {
+void delete_object(struct kobject *kobj, struct kobj_attribute *value, struct kobj_attribute *direction) {
 	if (!kobj) {
-		pr_info("null ptr in deletion????");
+		pr_info("GPIO_EMULATOR: null ptr in deletion???? %p", kobj);
 		return;
 	}
 	sysfs_remove_file(kobj, &value->attr);
+	sysfs_remove_file(kobj, &direction->attr);
 	kobject_del(kobj);
 }
 
@@ -860,262 +307,38 @@ static ssize_t unexport_store(struct kobject *kobj, struct kobj_attribute *attr,
 		return -EINVAL;
 	if (pinnum >= MAX_GPIO_PORTS)
 		return -EINVAL;
-	pr_info("UnExport Number: %ld\n", pinnum);
+	pr_info("GPIO_EMULATOR: UnExport Number: %ld\n", pinnum);
 	if (gpio_state[pinnum].active)
 	{
 		gpio_state[pinnum].active = 0;
-		if (pinnum == 0) {
-			if (!gpio0) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio0, &gpio0_value.attr);
-				sysfs_remove_file(gpio0, &gpio0_direction.attr);
-				kobject_del(gpio0);
-			}
-		}
-		else if (pinnum == 1) {
-			if (!gpio1) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio1, &gpio1_value.attr);
-				sysfs_remove_file(gpio1, &gpio1_direction.attr);
-				kobject_del(gpio1);
-			}
-		}
-		else if (pinnum == 2) {
-			if (!gpio2) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio2, &gpio2_value.attr);
-				sysfs_remove_file(gpio2, &gpio2_direction.attr);
-				kobject_del(gpio2);
-			}
-		}
-		else if (pinnum == 3) {
-			if (!gpio3) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio3, &gpio3_value.attr);
-				sysfs_remove_file(gpio3, &gpio3_direction.attr);
-				kobject_del(gpio3);
-			}
-		}
-		else if (pinnum == 4) {
-			if (!gpio4) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio4, &gpio4_value.attr);
-				sysfs_remove_file(gpio4, &gpio4_direction.attr);
-				kobject_del(gpio4);
-			}
-		}
-		else if (pinnum == 5) {
-			if (!gpio5) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio5, &gpio5_value.attr);
-				sysfs_remove_file(gpio5, &gpio5_direction.attr);
-				kobject_del(gpio5);
-			}
-		}
-		else if (pinnum == 6) {
-			if (!gpio6) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio6, &gpio6_value.attr);
-				sysfs_remove_file(gpio6, &gpio6_direction.attr);
-				kobject_del(gpio6);
-			}
-		}
-		else if (pinnum == 7) {
-			if (!gpio7) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio7, &gpio7_value.attr);
-				sysfs_remove_file(gpio7, &gpio7_direction.attr);
-				kobject_del(gpio7);
-			}
-		}
-		else if (pinnum == 8) {
-			if (!gpio8) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio8, &gpio8_value.attr);
-				sysfs_remove_file(gpio8, &gpio8_direction.attr);
-				kobject_del(gpio8);
-			}
-		}
-		else if (pinnum == 9) {
-			if (!gpio9) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio9, &gpio9_value.attr);
-				sysfs_remove_file(gpio9, &gpio9_direction.attr);
-				kobject_del(gpio9);
-			}
-		}
-		else if (pinnum == 10) {
-			if (!gpio10) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio10, &gpio10_value.attr);
-				sysfs_remove_file(gpio10, &gpio10_direction.attr);
-				kobject_del(gpio10);
-			}
-		}
-		else if (pinnum == 11) {
-			if (!gpio11) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio11, &gpio11_value.attr);
-				sysfs_remove_file(gpio11, &gpio11_direction.attr);
-				kobject_del(gpio11);
-			}
-		}
-		else if (pinnum == 12) {
-			if (!gpio12) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio12, &gpio12_value.attr);
-				sysfs_remove_file(gpio12, &gpio12_direction.attr);
-				kobject_del(gpio12);
-			}
-		}
-		else if (pinnum == 13) {
-			if (!gpio13) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio13, &gpio13_value.attr);
-				sysfs_remove_file(gpio13, &gpio13_direction.attr);
-				kobject_del(gpio13);
-			}
-		}
-		else if (pinnum == 14) {
-			if (!gpio14) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio14, &gpio14_value.attr);
-				sysfs_remove_file(gpio14, &gpio14_direction.attr);
-				kobject_del(gpio14);
-			}
-		}
-		else if (pinnum == 15) {
-			if (!gpio15) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio15, &gpio15_value.attr);
-				sysfs_remove_file(gpio15, &gpio15_direction.attr);
-				kobject_del(gpio15);
-			}
-		}
-		else if (pinnum == 16) {
-			if (!gpio16) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio16, &gpio16_value.attr);
-				sysfs_remove_file(gpio16, &gpio16_direction.attr);
-				kobject_del(gpio16);
-			}
-		}
-		else if (pinnum == 17) {
-			if (!gpio17) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio17, &gpio17_value.attr);
-				sysfs_remove_file(gpio17, &gpio17_direction.attr);
-				kobject_del(gpio17);
-			}
-		}
-		else if (pinnum == 18) {
-			if (!gpio18) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio18, &gpio18_value.attr);
-				sysfs_remove_file(gpio18, &gpio18_direction.attr);
-				kobject_del(gpio18);
-			}
-		}
-		else if (pinnum == 19) {
-			if (!gpio19) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio19, &gpio19_value.attr);
-				sysfs_remove_file(gpio19, &gpio19_direction.attr);
-				kobject_del(gpio19);
-			}
-		}
-		else if (pinnum == 20) {
-			if (!gpio20) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio20, &gpio20_value.attr);
-				sysfs_remove_file(gpio20, &gpio20_direction.attr);
-				kobject_del(gpio20);
-			}
-		}
-		else if (pinnum == 21) {
-			if (!gpio21) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio21, &gpio21_value.attr);
-				sysfs_remove_file(gpio21, &gpio21_direction.attr);
-				kobject_del(gpio21);
-			}
-		}
-		else if (pinnum == 22) {
-			if (!gpio22) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio22, &gpio22_value.attr);
-				sysfs_remove_file(gpio22, &gpio22_direction.attr);
-				kobject_del(gpio22);
-			}
-		}
-		else if (pinnum == 23) {
-			if (!gpio23) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio23, &gpio23_value.attr);
-				sysfs_remove_file(gpio23, &gpio23_direction.attr);
-				kobject_del(gpio23);
-			}
-		}
-		else if (pinnum == 24) {
-			if (!gpio24) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio24, &gpio24_value.attr);
-				sysfs_remove_file(gpio24, &gpio24_direction.attr);
-				kobject_del(gpio24);
-			}
-		}
-		else if (pinnum == 25) {
-			if (!gpio25) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio25, &gpio25_value.attr);
-				sysfs_remove_file(gpio25, &gpio25_direction.attr);
-				kobject_del(gpio25);
-			}
-		}
-		else if (pinnum == 26) {
-			if (!gpio26) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio26, &gpio26_value.attr);
-				sysfs_remove_file(gpio26, &gpio26_direction.attr);
-				kobject_del(gpio26);
-			}
-		}
-		else if (pinnum == 27) {
-			if (!gpio27) {
-				pr_info("null ptr in deletion????");
-			} else {
-				sysfs_remove_file(gpio27, &gpio27_value.attr);
-				sysfs_remove_file(gpio27, &gpio27_direction.attr);
-				kobject_del(gpio27);
-			}
-		}
+		if (pinnum == 0) delete_object(gpio0, &gpio0_value, &gpio0_direction);
+		else if (pinnum == 1) delete_object(gpio1, &gpio1_value, &gpio1_direction);
+		else if (pinnum == 2) delete_object(gpio2, &gpio2_value, &gpio2_direction);
+		else if (pinnum == 3) delete_object(gpio3, &gpio3_value, &gpio3_direction);
+		else if (pinnum == 4) delete_object(gpio4, &gpio4_value, &gpio4_direction);
+		else if (pinnum == 5) delete_object(gpio5, &gpio5_value, &gpio5_direction);
+		else if (pinnum == 6) delete_object(gpio6, &gpio6_value, &gpio6_direction);
+		else if (pinnum == 7) delete_object(gpio7, &gpio7_value, &gpio7_direction);
+		else if (pinnum == 8) delete_object(gpio8, &gpio8_value, &gpio8_direction);
+		else if (pinnum == 9) delete_object(gpio9, &gpio9_value, &gpio9_direction);
+		else if (pinnum == 10) delete_object(gpio10, &gpio10_value, &gpio10_direction);
+		else if (pinnum == 11) delete_object(gpio11, &gpio11_value, &gpio11_direction);
+		else if (pinnum == 12) delete_object(gpio12, &gpio12_value, &gpio12_direction);
+		else if (pinnum == 13) delete_object(gpio13, &gpio13_value, &gpio13_direction);
+		else if (pinnum == 14) delete_object(gpio14, &gpio14_value, &gpio14_direction);
+		else if (pinnum == 15) delete_object(gpio15, &gpio15_value, &gpio15_direction);
+		else if (pinnum == 16) delete_object(gpio16, &gpio16_value, &gpio16_direction);
+		else if (pinnum == 17) delete_object(gpio17, &gpio17_value, &gpio17_direction);
+		else if (pinnum == 18) delete_object(gpio18, &gpio18_value, &gpio18_direction);
+		else if (pinnum == 19) delete_object(gpio19, &gpio19_value, &gpio19_direction);
+		else if (pinnum == 20) delete_object(gpio20, &gpio20_value, &gpio20_direction);
+		else if (pinnum == 21) delete_object(gpio21, &gpio21_value, &gpio21_direction);
+		else if (pinnum == 22) delete_object(gpio22, &gpio22_value, &gpio22_direction);
+		else if (pinnum == 23) delete_object(gpio23, &gpio23_value, &gpio23_direction);
+		else if (pinnum == 24) delete_object(gpio24, &gpio24_value, &gpio24_direction);
+		else if (pinnum == 25) delete_object(gpio25, &gpio25_value, &gpio25_direction);
+		else if (pinnum == 26) delete_object(gpio26, &gpio26_value, &gpio26_direction);
+		else if (pinnum == 27) delete_object(gpio27, &gpio27_value, &gpio27_direction);
 	}
 	return count;
 }
@@ -1135,7 +358,7 @@ void sudo_user_ownership(struct kobject *kobj, kuid_t *uid, kgid_t *gid)
 static int __init module_start(void)
 {
 	int i = 0;
-	pr_info("Loading gpio module...\n");
+	pr_info("GPIO_EMULATOR: Loading gpio module...\n");
 
 	while (i < MAX_GPIO_PORTS)
 	{
@@ -1149,7 +372,7 @@ static int __init module_start(void)
 	gpio_emul = kobject_create_and_add("gpio_emul", kernel_kobj);
 	if (!gpio_emul)
 	{
-		pr_info("Error creating module");
+		pr_info("GPIO_EMULATOR: Error creating module");
 		return -ENOMEM;
 	}
 	gpio_emul->ktype->get_ownership = sudo_user_ownership;
@@ -1157,24 +380,24 @@ static int __init module_start(void)
 	// Create files
 	if (sysfs_create_file(gpio_emul, &export.attr))
 	{
-		pr_info("Error creating export file");
+		pr_info("GPIO_EMULATOR: Error creating export file");
 		kobject_put(gpio_emul);
 		return -ENOMEM;
 	}
 	if (sysfs_create_file(gpio_emul, &unexport.attr))
 	{
-		pr_info("Error creating unexport file");
+		pr_info("GPIO_EMULATOR: Error creating unexport file");
 		kobject_put(gpio_emul);
 		return -ENOMEM;
 	}
 
-	pr_info("Module loaded!\n");
+	pr_info("GPIO_EMULATOR: Module loaded!\n");
 	return 0;
 }
 
 static void __exit module_end(void)
 {
-	pr_info("Cleaning up gpio emulator\n");
+	pr_info("GPIO_EMULATOR: Cleaning up gpio emulator\n");
 	sysfs_remove_file(gpio_emul, &export.attr);
 	sysfs_remove_file(gpio_emul, &unexport.attr);
 	kobject_put(gpio_emul);
