@@ -1,0 +1,2 @@
+# Sysfs Gpio Emulator
+This project emulates gpio functionality on devices without gpio ports so code will still run. To install install linux header files and run `make`. Linux header files can be installed on Ubuntu using `apt-get install linux-headers-$(uname -r)`. After the project is compiled run `insmod emul.ko` to insert the emulator. The functionality of gpio will now appear in `/sys/kernel/gpio_emul` and works exactly the same as microcontrollers such as the raspberry pi
